@@ -30,10 +30,9 @@ KEYWORDS = "roofing, tuckpointing, windows, or construction"
 client = genai.Client(api_key=API_KEY)
 history_file = "seen_ids.txt"
 
-# 3. Calculate the 7-day threshold
-seven_days_ago = datetime.now() - timedelta(days=7)
-threshold_date = seven_days_ago.strftime('%B %d, %Y')
-print(f"Filtering for leads posted on or after: {threshold_date}")
+# --- NEW CODE TO PASTE ---
+threshold_date = "February 21, 2026"
+print(f"Force filtering for leads posted on or after: {threshold_date}")
 
 # 4. Load memory of previously found leads
 if os.path.exists(history_file):
