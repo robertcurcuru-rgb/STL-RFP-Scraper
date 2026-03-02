@@ -11,8 +11,7 @@ API_KEY = os.getenv("GEMINI_API_KEY")
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
 
-# 2. Expanded Search List: St. Louis Regional School Districts (Ranked 11-21)
-# and major county/municipal procurement portals.
+# 2. Expanded Search List: St. Louis Regional Districts (11-21) + County Hubs
 districts = {
     "St. Louis Regional Districts (Ranked 11-21)": [
         "https://www.nwr1.k12.mo.us/departments/finance/purchasing/bids-and-rfps", # Northwest R-1
@@ -28,12 +27,12 @@ districts = {
         "https://www.troyschools.net/departments/financial-affairs/bids-and-requests-for-proposals-rfp" # Troy R-III
     ],
     "County & Regional Hubs": [
-        "https://stlouiscountymo.gov/services/services-links/procurement/", # St. Louis County
-        "https://www.stlouis-mo.gov/government/procurement/index.cfm", # St. Louis City
-        "https://www.stcharlescitymo.gov/161/Bids-Purchases", # St. Charles
-        "https://www.jeffcomo.gov/347/Bids", # Jefferson County
-        "https://www.franklinmo.org/bids", # Franklin County
-        "https://stlmuni.org/the-league/rfps/" # St. Louis Municipal League
+        "https://stlouiscountymo.gov/services/services-links/procurement/",
+        "https://www.stlouis-mo.gov/government/procurement/index.cfm",
+        "https://www.stcharlescitymo.gov/161/Bids-Purchases",
+        "https://www.jeffcomo.gov/347/Bids",
+        "https://www.franklinmo.org/bids",
+        "https://stlmuni.org/the-league/rfps/"
     ]
 }
 
@@ -51,24 +50,22 @@ else:
 all_new_leads = []
 current_session_ids = []
 
-# 4. Scraper Logic with 20-second API cooldown
+# 4. Scraper Logic with 35-second API cooldown
 for batch_name, urls in districts.items():
     for url in urls:
         try:
             print(f"--- Checking: {url} ---")
-            response = requests.get(url, timeout=15)
+            response = requests.get(url, timeout=20)
             
-            # Simple prompt for all active matching bids
             prompt = (
-                f"Identify any currently active or open bids for {KEYWORDS} on this page. "
-                f"If you find any, list them as: [TITLE] - [DUE DATE]. "
+                f"Identify any active or open bids for {KEYWORDS} on this page. "
+                f"If found, list them clearly as: [TITLE] - [DUE DATE]. "
                 f"Website content: {response.text[:10000]}"
             )
             
             result = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
             lead_text = result.text.strip()
             
-            # Print AI response for log visibility
             print(f"AI Result for {url}: {lead_text[:100]}...")
 
             if "no active" not in lead_text.lower() and len(lead_text) > 15:
@@ -76,13 +73,13 @@ for batch_name, urls in districts.items():
                     all_new_leads.append(f"({batch_name}) ACTIVE LEAD at {url}:\n{lead_text}")
                     current_session_ids.append(lead_text)
             
-            # WAIT 20 SECONDS to avoid hitting the free tier limit (429 Error)
-            print("Cooling down 20 seconds...")
-            time.sleep(20) 
+            # MANDATORY 35s COOL DOWN: Prevents 429 Error on Free Tier
+            print("Cooling down 35 seconds...")
+            time.sleep(35) 
             
         except Exception as e:
             print(f"Error at {url}: {e}")
-            time.sleep(30) 
+            time.sleep(40) 
 
 # 5. Email Notification
 if all_new_leads:
