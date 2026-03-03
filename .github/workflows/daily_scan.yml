@@ -1,14 +1,14 @@
 name: Daily RFP Scan
 on:
   schedule:
-    - cron: '0 14 * * *'  # Runs at 8:00 AM CST
-  workflow_dispatch:      # Enables the manual 'Play' button
+    - cron: '0 14 * * *'
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write    # Permits saving history back to seen_ids.txt
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
