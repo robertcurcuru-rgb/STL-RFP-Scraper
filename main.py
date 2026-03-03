@@ -11,22 +11,22 @@ API_KEY = os.getenv("GEMINI_API_KEY")
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
 
-# 2. Expanded Search List: St. Louis Regional Districts (11-21) + County Hubs
+# 2. Regional Districts (11-21) and County Municipal Hubs
 districts = {
-    "St. Louis Regional Districts (Ranked 11-21)": [
+    "Targeted K-12 Districts (11-21)": [
         "https://www.nwr1.k12.mo.us/departments/finance/purchasing/bids-and-rfps", # Northwest R-1
         "https://www.psdr3.org/departments/operations/purchasing", # Pattonville R-3
         "https://www.lindberghschools.ws/departments/business-and-finance/bids-proposals-and-qualifications", # Lindbergh
         "https://www.stcharlessd.org/Page/190", # St. Charles R-VI
         "https://www.mvr3.k12.mo.us/page/vendor-bid-information", # Meramec Valley R-III
-        "https://www.washington.k12.mo.us/49133_3", # School District of Washington
+        "https://www.washington.k12.mo.us/49133_3", # SD of Washington
         "https://www.rgsd.k12.mo.us/Page/107", # Riverview Gardens
         "https://www.fergflor.k12.mo.us/Page/506", # Ferguson-Florissant
         "https://www.ritenour.k12.mo.us/Page/156", # Ritenour
         "https://www.webster.k12.mo.us/Page/147", # Webster Groves
         "https://www.troyschools.net/departments/financial-affairs/bids-and-requests-for-proposals-rfp" # Troy R-III
     ],
-    "County & Regional Hubs": [
+    "County & Municipal Portals": [
         "https://stlouiscountymo.gov/services/services-links/procurement/",
         "https://www.stlouis-mo.gov/government/procurement/index.cfm",
         "https://www.stcharlescitymo.gov/161/Bids-Purchases",
@@ -40,7 +40,7 @@ KEYWORDS = "roofing, tuckpointing, windows, or construction"
 client = genai.Client(api_key=API_KEY)
 history_file = "seen_ids.txt"
 
-# 3. Load memory (prevents duplicate emails)
+# 3. Load memory to avoid duplicates
 if os.path.exists(history_file):
     with open(history_file, "r") as f:
         seen_leads = f.read().splitlines()
@@ -50,7 +50,7 @@ else:
 all_new_leads = []
 current_session_ids = []
 
-# 4. Scraper Logic with 35-second API cooldown
+# 4. Scraper Logic with Mandatory 35s Cooldown to fix 429 Errors
 for batch_name, urls in districts.items():
     for url in urls:
         try:
@@ -59,13 +59,12 @@ for batch_name, urls in districts.items():
             
             prompt = (
                 f"Identify any active or open bids for {KEYWORDS} on this page. "
-                f"If found, list them clearly as: [TITLE] - [DUE DATE]. "
+                f"List them clearly as: [TITLE] - [DUE DATE]. "
                 f"Website content: {response.text[:10000]}"
             )
             
             result = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
             lead_text = result.text.strip()
-            
             print(f"AI Result for {url}: {lead_text[:100]}...")
 
             if "no active" not in lead_text.lower() and len(lead_text) > 15:
@@ -73,7 +72,7 @@ for batch_name, urls in districts.items():
                     all_new_leads.append(f"({batch_name}) ACTIVE LEAD at {url}:\n{lead_text}")
                     current_session_ids.append(lead_text)
             
-            # MANDATORY 35s COOL DOWN: Prevents 429 Error on Free Tier
+            # CRITICAL 35-second cooldown for Free Tier Quota
             print("Cooling down 35 seconds...")
             time.sleep(35) 
             
@@ -95,6 +94,6 @@ if all_new_leads:
     with open(history_file, "a") as f:
         for item in current_session_ids:
             f.write(item + "\n")
-    print("Success: Email sent and history updated.")
+    print("Success: Email sent.")
 else:
     print("Finished: No new leads found.")
